@@ -1,0 +1,14 @@
+=============================================
+Dataset: sleepEDF
+Mode:    tl
+=============================================
+Data loaded ...
+Training started ....
+
+Epoch : 1
+Train Loss     : 0.5791	 | 	Train Accuracy     : 0.7848
+Valid Loss     : 0.5538	 | 	Valid Accuracy     : 0.7803
+
+Epoch : 2
+Train Loss     : 0.4942	 | 	Train Accuracy     : 0.8183
+Valid Loss     : 0.6906	 | 	Valid Accuracy     : 0.7361

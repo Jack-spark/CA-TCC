@@ -19,13 +19,13 @@ parser = argparse.ArgumentParser()
 
 ######################## Model parameters ########################
 home_dir = os.getcwd()
-parser.add_argument('--experiment_description',     default='HAR_experiments',  type=str,   help='Experiment Description')
+parser.add_argument('--experiment_description',     default='EEG_experiments',  type=str,   help='Experiment Description')
 parser.add_argument('--run_description',            default='test1',            type=str,   help='Experiment Description')
 parser.add_argument('--seed',                       default=0,                  type=int,   help='seed value')
 parser.add_argument('--training_mode',              default='self_supervised',  type=str,
                     help='Modes of choice: random_init, supervised, self_supervised, SupCon, ft_1p, gen_pseudo_labels')
 
-parser.add_argument('--selected_dataset',           default='HAR',              type=str,   help='Dataset of choice: EEG, HAR, Epilepsy, pFD')
+parser.add_argument('--selected_dataset',           default='sleepEDF',              type=str,   help='Dataset of choice: EEG, HAR, Epilepsy, pFD')
 parser.add_argument('--data_path',                  default=r'data/',           type=str,   help='Path containing dataset')
 
 parser.add_argument('--logs_save_dir',              default='experiments_logs', type=str,   help='saving directory')
@@ -78,7 +78,7 @@ logger.debug("Data loaded ...")
 # Load Model
 model = base_Model(configs).to(device)
 temporal_contr_model = TC(configs, device).to(device)
-
+# ft表示加载用全部数据自监督而来的或者是用伪标签来的模型，在删掉最后一层logits之后，加载模型参数
 if "fine_tune" in training_mode or "ft_" in training_mode:
     # load saved model of this experiment
     if 'SupCon' not in training_mode:
@@ -99,7 +99,7 @@ if "fine_tune" in training_mode or "ft_" in training_mode:
                 del pretrained_dict[i]
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
-
+# gen_pseudo_labels指要用未标签数据生成伪标签，首先要有一个ft_1p而来的模型，然后用这个模型来生成伪标签
 if training_mode == "gen_pseudo_labels":
     ft_perc = "1p"
     load_from = os.path.join(
@@ -109,7 +109,7 @@ if training_mode == "gen_pseudo_labels":
     model.load_state_dict(pretrained_dict)
     gen_pseudo_labels(model, train_dl, device, data_path)
     sys.exit(0)
-
+# tl指冻结除了最后一层logits之外的所有层，然后加载用全部数据自监督而来的模型参数
 if "train_linear" in training_mode or "tl" in training_mode:
     if 'SupCon' not in training_mode:
         load_from = os.path.join(
@@ -136,7 +136,7 @@ if "train_linear" in training_mode or "tl" in training_mode:
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
     set_requires_grad(model, pretrained_dict, requires_grad=False)  # Freeze everything except last layer.
-
+# random_init指随机初始化最后一层的参数，其他层都不动，都是初始化的
 if training_mode == "random_init":
     model_dict = model.state_dict()
 
@@ -149,7 +149,8 @@ if training_mode == "random_init":
                 del model_dict[i]
     set_requires_grad(model, model_dict, requires_grad=False)  # Freeze everything except last layer.
 
-    
+data_perc = 1
+# supcon指先加载ft_1p的模型    
 if training_mode == "SupCon":
     load_from = os.path.join(       
         os.path.join(logs_save_dir, experiment_description, run_description, f"ft_{data_perc}p_seed_{SEED}", "saved_models"))      
